@@ -39,13 +39,15 @@ namespace colmap {
 class BundleAdjustmentController : public BaseController {
  public:
   BundleAdjustmentController(const OptionManager& options,
-                             std::shared_ptr<Reconstruction> reconstruction);
+                             std::shared_ptr<Reconstruction> reconstruction,
+                             std::shared_ptr<Reconstruction> real_pose=nullptr);
 
   void Run();
 
  private:
   const OptionManager options_;
   std::shared_ptr<Reconstruction> reconstruction_;
+  std::shared_ptr<Reconstruction> real_pose_;
 };
 
 }  // namespace colmap

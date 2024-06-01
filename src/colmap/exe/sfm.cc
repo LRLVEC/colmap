@@ -137,10 +137,12 @@ int RunAutomaticReconstructor(int argc, char** argv) {
 int RunBundleAdjuster(int argc, char** argv) {
   std::string input_path;
   std::string output_path;
+  std::string real_input_path;
 
   OptionManager options;
   options.AddRequiredOption("input_path", &input_path);
   options.AddRequiredOption("output_path", &output_path);
+  options.AddDefaultOption("real_input_path", &real_input_path);
   options.AddBundleAdjustmentOptions();
   options.Parse(argc, argv);
 
@@ -157,7 +159,13 @@ int RunBundleAdjuster(int argc, char** argv) {
   auto reconstruction = std::make_shared<Reconstruction>();
   reconstruction->Read(input_path);
 
-  BundleAdjustmentController ba_controller(options, reconstruction);
+  auto real_pose = std::make_shared<Reconstruction>();
+  if (!real_input_path.empty())
+  {
+    real_pose->Read(real_input_path);
+  }
+
+  BundleAdjustmentController ba_controller(options, reconstruction, real_pose);
   ba_controller.Run();
 
   reconstruction->Write(output_path);
@@ -445,7 +453,7 @@ void RunPointTriangulatorImpl(
   auto options_tmp = std::make_shared<IncrementalMapperOptions>(options);
   options_tmp->fix_existing_images = true;
   options_tmp->ba_refine_focal_length = refine_intrinsics;
-  options_tmp->ba_refine_principal_point = false;
+  options_tmp->ba_refine_principal_point = refine_intrinsics;
   options_tmp->ba_refine_extra_params = refine_intrinsics;
 
   auto reconstruction_manager = std::make_shared<ReconstructionManager>();

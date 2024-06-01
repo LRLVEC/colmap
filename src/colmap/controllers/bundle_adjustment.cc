@@ -30,6 +30,7 @@
 #include "colmap/controllers/bundle_adjustment.h"
 
 #include "colmap/estimators/bundle_adjustment.h"
+#include "colmap/estimators/similarity_transform.h"
 #include "colmap/sfm/observation_manager.h"
 #include "colmap/util/misc.h"
 #include "colmap/util/timer.h"
@@ -63,8 +64,9 @@ class BundleAdjustmentIterationCallback : public ceres::IterationCallback {
 
 BundleAdjustmentController::BundleAdjustmentController(
     const OptionManager& options,
-    std::shared_ptr<Reconstruction> reconstruction)
-    : options_(options), reconstruction_(std::move(reconstruction)) {}
+    std::shared_ptr<Reconstruction> reconstruction,
+    std::shared_ptr<Reconstruction> real_pose)
+    : options_(options), reconstruction_(std::move(reconstruction)), real_pose_(real_pose) {}
 
 void BundleAdjustmentController::Run() {
   THROW_CHECK_NOTNULL(reconstruction_);
@@ -74,6 +76,8 @@ void BundleAdjustmentController::Run() {
   run_timer.Start();
 
   const std::vector<image_t>& reg_image_ids = reconstruction_->RegImageIds();
+
+  reconstruction_->Normalize();
 
   if (reg_image_ids.size() < 2) {
     LOG(ERROR) << "Need at least two views.";
@@ -99,6 +103,37 @@ void BundleAdjustmentController::Run() {
   // Run bundle adjustment.
   BundleAdjuster bundle_adjuster(ba_options, ba_config);
   bundle_adjuster.Solve(reconstruction_.get());
+
+  // Transform to database pose coordinate
+  if (real_pose_)
+  {
+    std::vector<Eigen::Vector3d> real_positions;
+    std::vector<Eigen::Vector3d> sim_positions;
+    for (auto const& real_pose : real_pose_->Images())
+    {
+      auto* sim_pose = reconstruction_->FindImageWithName(real_pose.second.Name());
+      if (sim_pose)
+      {
+        real_positions.push_back(real_pose.second.ProjectionCenter());
+        sim_positions.push_back(sim_pose->ProjectionCenter());
+      }
+    }
+    Sim3d sim2real;
+    if (EstimateSim3d(sim_positions,
+                      real_positions,
+                      sim2real))
+    {
+      reconstruction_->Transform(sim2real);
+      std::vector<double> res;
+      SimilarityTransformEstimator<3>::Residuals(sim_positions, real_positions, sim2real.ToMatrix(), &res);
+      double res_mean(0);
+      for (auto&r : res)
+        res_mean += r;
+      res_mean = sqrt(res_mean / res.size());
+      LOG(INFO) << "Sim2real residual: " << res_mean;
+    }
+  }
+
 
   run_timer.PrintMinutes();
 }
