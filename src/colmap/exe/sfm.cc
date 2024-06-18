@@ -138,11 +138,13 @@ int RunBundleAdjuster(int argc, char** argv) {
   std::string input_path;
   std::string output_path;
   std::string real_input_path;
+  bool do_adj = true;
 
   OptionManager options;
   options.AddRequiredOption("input_path", &input_path);
   options.AddRequiredOption("output_path", &output_path);
   options.AddDefaultOption("real_input_path", &real_input_path);
+  options.AddDefaultOption("do_adj", &do_adj);
   options.AddBundleAdjustmentOptions();
   options.Parse(argc, argv);
 
@@ -165,7 +167,7 @@ int RunBundleAdjuster(int argc, char** argv) {
     real_pose->Read(real_input_path);
   }
 
-  BundleAdjustmentController ba_controller(options, reconstruction, real_pose);
+  BundleAdjustmentController ba_controller(options, reconstruction, real_pose, do_adj);
   ba_controller.Run();
 
   reconstruction->Write(output_path);

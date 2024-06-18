@@ -65,8 +65,9 @@ class BundleAdjustmentIterationCallback : public ceres::IterationCallback {
 BundleAdjustmentController::BundleAdjustmentController(
     const OptionManager& options,
     std::shared_ptr<Reconstruction> reconstruction,
-    std::shared_ptr<Reconstruction> real_pose)
-    : options_(options), reconstruction_(std::move(reconstruction)), real_pose_(real_pose) {}
+    std::shared_ptr<Reconstruction> real_pose,
+    bool do_adj)
+    : options_(options), reconstruction_(std::move(reconstruction)), real_pose_(real_pose), do_adj_(do_adj) {}
 
 void BundleAdjustmentController::Run() {
   THROW_CHECK_NOTNULL(reconstruction_);
@@ -101,8 +102,11 @@ void BundleAdjustmentController::Run() {
   ba_config.SetConstantCamPositions(reg_image_ids[1], {0});
 
   // Run bundle adjustment.
-  BundleAdjuster bundle_adjuster(ba_options, ba_config);
-  bundle_adjuster.Solve(reconstruction_.get());
+  if (do_adj_)
+  {
+    BundleAdjuster bundle_adjuster(ba_options, ba_config);
+    bundle_adjuster.Solve(reconstruction_.get());
+  }
 
   // Transform to database pose coordinate
   if (real_pose_)
@@ -119,7 +123,8 @@ void BundleAdjustmentController::Run() {
       }
     }
     Sim3d sim2real;
-    if (EstimateSim3d(sim_positions,
+    if (real_positions.size() &&
+        EstimateSim3d(sim_positions,
                       real_positions,
                       sim2real))
     {

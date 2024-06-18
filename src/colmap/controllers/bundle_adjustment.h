@@ -40,7 +40,8 @@ class BundleAdjustmentController : public BaseController {
  public:
   BundleAdjustmentController(const OptionManager& options,
                              std::shared_ptr<Reconstruction> reconstruction,
-                             std::shared_ptr<Reconstruction> real_pose=nullptr);
+                             std::shared_ptr<Reconstruction> real_pose=nullptr,
+                             bool do_adj = false);
 
   void Run();
 
@@ -48,6 +49,7 @@ class BundleAdjustmentController : public BaseController {
   const OptionManager options_;
   std::shared_ptr<Reconstruction> reconstruction_;
   std::shared_ptr<Reconstruction> real_pose_;
+  bool do_adj_;
 };
 
 }  // namespace colmap
