@@ -78,11 +78,15 @@ ObservationManager::ObservationManager(
         kNumPoint3DVisibilityPyramidLevels, camera.width, camera.height);
     image_stat.num_correspondences_have_point3D.resize(image.NumPoints2D(), 0);
     image_stat.num_visible_points3D = 0;
-    if (correspondence_graph_) {
+    if (correspondence_graph_ && correspondence_graph_->ExistsImage(image.ImageId())) {
       image_stat.num_observations =
           correspondence_graph_->NumObservationsForImage(id_image.first);
       image_stat.num_correspondences =
           correspondence_graph_->NumCorrespondencesForImage(id_image.first);
+    }
+    else{
+      image_stat.num_observations = 0;
+      image_stat.num_correspondences = 0;
     }
     image_stats_.emplace(id_image.first, image_stat);
   }
@@ -297,7 +301,7 @@ size_t ObservationManager::FilterPoints3DInImages(
   for (const image_t image_id : image_ids) {
     const Image& image = reconstruction_.Image(image_id);
     for (const Point2D& point2D : image.Points2D()) {
-      if (point2D.HasPoint3D()) {
+      if (point2D.HasPoint3D() && reconstruction_.ExistsPoint3D(point2D.point3D_id)) {
         point3D_ids.insert(point2D.point3D_id);
       }
     }
@@ -328,7 +332,7 @@ size_t ObservationManager::FilterObservationsWithNegativeDepth() {
     for (point2D_t point2D_idx = 0; point2D_idx < image.NumPoints2D();
          ++point2D_idx) {
       const Point2D& point2D = image.Point2D(point2D_idx);
-      if (point2D.HasPoint3D()) {
+      if (point2D.HasPoint3D() && reconstruction_.ExistsPoint3D(point2D.point3D_id)) {
         const struct Point3D& point3D =
             reconstruction_.Point3D(point2D.point3D_id);
         if (!HasPointPositiveDepth(cam_from_world, point3D.xyz)) {

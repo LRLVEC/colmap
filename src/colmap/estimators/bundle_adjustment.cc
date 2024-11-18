@@ -383,7 +383,7 @@ void BundleAdjuster::AddImageToProblem(const image_t image_id,
   // Add residuals to bundle adjustment problem.
   size_t num_observations = 0;
   for (const Point2D& point2D : image.Points2D()) {
-    if (!point2D.HasPoint3D()) {
+    if (!point2D.HasPoint3D() || !reconstruction->ExistsPoint3D(point2D.point3D_id)) {
       continue;
     }
 
@@ -669,7 +669,7 @@ void RigBundleAdjuster::AddImageToProblem(const image_t image_id,
 
   // Add residuals to bundle adjustment problem.
   for (const Point2D& point2D : image.Points2D()) {
-    if (!point2D.HasPoint3D()) {
+    if (!point2D.HasPoint3D() || !reconstruction->ExistsPoint3D(point2D.point3D_id)) {
       continue;
     }
 
